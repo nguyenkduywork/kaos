@@ -9,6 +9,8 @@ namespace UnityStandardAssets.Characters.ThirdPerson
     {
         [SerializeField] private float chaseRange = 10f;
         private float distanceToTarget = Mathf.Infinity;
+        
+        bool isProvoked = false;
         public UnityEngine.AI.NavMeshAgent agent { get; private set; }             // the navmesh agent required for the path finding
         public ThirdPersonCharacter character { get; private set; } // the character we are controlling
         public Transform target;                                    // target to aim for
@@ -29,16 +31,37 @@ namespace UnityStandardAssets.Characters.ThirdPerson
         {
             //make distanceToTarget the distance from target position to this object position
             distanceToTarget = Vector3.Distance(target.position, transform.position);
-            //if the target isnt null and the distance to target is less than chase range then set the destination of agent to the target position
-            if (target != null && distanceToTarget <= chaseRange)
+
+            if (isProvoked)
             {
-                agent.SetDestination(target.position);
+                EngageTarget();
+            }
+            else if (distanceToTarget <= chaseRange)
+            {
+                isProvoked = true;
             }
             
-            if (agent.remainingDistance > agent.stoppingDistance)
-                character.Move(agent.desiredVelocity, false, false);
-            else
-                character.Move(Vector3.zero, false, false);
+        }
+        
+        private void EngageTarget()
+        {
+            //if the distance to target is more than the radius from which the ai can reach the target, move towards the target
+            if (distanceToTarget >= agent.stoppingDistance)
+                ChaseTarget();
+            //if in range, attack the target
+            if (distanceToTarget <= agent.stoppingDistance)
+                AttackTarget();
+        }
+        
+        private void ChaseTarget()
+        {
+            agent.SetDestination(target.position);
+            character.Move(agent.desiredVelocity, false, false);
+        }
+        
+        private void AttackTarget()
+        {
+            Debug.Log("Attacked " + target.name);
         }
         
         void OnDrawGizmosSelected()
